@@ -7,19 +7,22 @@ import {
 } from "../services/property";
 import type { PropertyImage } from "../types/property";
 import { uploadPropertyImage, deletePropertyImage } from "../services/image";
+import ConfirmDialog from "../components/ConfirmDialog";
 import ImagePicker from "../components/ImagePicker/ImagePicker";
 import PropertyForm from "../components/PropertyForm/PropertyForm";
 import StatusPage from "../components/StatusPage/StatusPage";
 import Loading from "../components/Loading";
+import PageHeader from "../components/PageHeader/PageHeader";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../i18n/I18nContext";
 import { getImageUrl } from "../utils/format";
 import { parseApiError } from "../utils/apiErrors";
-import "./EditProperty.css";
 
 function EditProperty() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
 
   const [initialValues, setInitialValues] = useState<CreatePropertyData | null>(
     null
@@ -36,6 +39,7 @@ function EditProperty() {
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imageBusy, setImageBusy] = useState(false);
   const [imageMessage, setImageMessage] = useState("");
+  const [imageToDelete, setImageToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -74,20 +78,16 @@ function EditProperty() {
   }, [id, user]);
 
   const handleDeleteImage = async (imageId: number) => {
-    if (!window.confirm("Bu rasmni o'chirmoqchimisiz?")) return;
-
     try {
       setImageBusy(true);
       setImageMessage("");
       await deletePropertyImage(Number(id), imageId);
       setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
     } catch (err) {
-      setImageMessage(
-        parseApiError(err, "Rasmni o'chirib bo'lmadi.").general ||
-          "Rasmni o'chirib bo'lmadi."
-      );
+      setImageMessage(parseApiError(err, t("edit.delImgFail")).general);
     } finally {
       setImageBusy(false);
+      setImageToDelete(null);
     }
   };
 
@@ -104,10 +104,12 @@ function EditProperty() {
         uploaded.push(created as PropertyImage);
         remaining = remaining.slice(1);
       }
-      setImageMessage("Rasmlar yuklandi.");
+      setImageMessage(t("edit.uploaded"));
     } catch (err) {
       setImageMessage(
-        `Yuklanmadi: ${parseApiError(err, "noma'lum xato").general}. Qolgan rasmlarni qayta yuboring.`
+        t("edit.uploadFail", {
+          reason: parseApiError(err, t("create.unknown")).general,
+        })
       );
     } finally {
       setExistingImages((prev) => [...prev, ...uploaded]);
@@ -125,7 +127,7 @@ function EditProperty() {
       await updateProperty(Number(id), data);
       navigate("/my-properties");
     } catch (err) {
-      const parsed = parseApiError(err, "Yangilashda xatolik yuz berdi.");
+      const parsed = parseApiError(err, t("edit.fail"));
       setFieldErrors(parsed.fields);
       setError(parsed.general);
     } finally {
@@ -133,16 +135,16 @@ function EditProperty() {
     }
   };
 
-  if (loadStatus === "loading") return <Loading text="Yuklanmoqda..." />;
+  if (loadStatus === "loading") return <Loading />;
 
   if (loadStatus === "notFound") {
     return (
       <StatusPage
         code="404"
-        title="E'lon topilmadi"
-        text="Bunday e'lon mavjud emas."
+        title={t("edit.notFound.title")}
+        text={t("edit.notFound.text")}
         linkTo="/my-properties"
-        linkLabel="Mening e'lonlarim"
+        linkLabel={t("edit.toMine")}
       />
     );
   }
@@ -151,10 +153,10 @@ function EditProperty() {
     return (
       <StatusPage
         code="403"
-        title="Ruxsat yo'q"
-        text="Bu e'lon sizga tegishli emas, uni tahrirlay olmaysiz."
+        title={t("edit.forbidden.title")}
+        text={t("edit.forbidden.text")}
         linkTo="/my-properties"
-        linkLabel="Mening e'lonlarim"
+        linkLabel={t("edit.toMine")}
       />
     );
   }
@@ -163,49 +165,59 @@ function EditProperty() {
     return (
       <StatusPage
         code="!"
-        title="Xatolik"
-        text="E'lon ma'lumotlarini yuklab bo'lmadi. Keyinroq qayta urinib ko'ring."
+        title={t("edit.loadErr.title")}
+        text={t("edit.loadErr.text")}
         linkTo="/my-properties"
-        linkLabel="Mening e'lonlarim"
+        linkLabel={t("edit.toMine")}
       />
     );
   }
 
   return (
-    <div className="container">
-      <h1>E'lonni tahrirlash</h1>
+    <div className="max-w-[860px]">
+      <PageHeader
+        eyebrow={t("edit.eyebrow")}
+        title={t("edit.title")}
+        subtitle={t("edit.subtitle")}
+      />
 
       <PropertyForm
         initialValues={initialValues}
-        submitLabel="O'zgarishlarni saqlash"
-        submittingLabel="Saqlanmoqda..."
+        submitLabel={t("edit.submit")}
+        submittingLabel={t("edit.submitting")}
         submitting={saving}
         error={error}
         serverFieldErrors={fieldErrors}
         onSubmit={handleSubmit}
       >
-        <label>Joriy rasmlar</label>
+        <span className="field-label">{t("edit.currentImages")}</span>
 
         {existingImages.length === 0 ? (
-          <p>Rasm yo'q. Kamida 1 ta rasm qo'shing.</p>
+          <p className="text-sm text-muted">{t("edit.noImages")}</p>
         ) : (
-          <ul className="edit-images">
+          <ul className="my-2 flex flex-wrap gap-3.5">
             {existingImages.map((image) => (
-              <li key={image.id}>
-                <img src={getImageUrl(image.url)} alt={image.altText ?? ""} />
+              <li key={image.id} className="flex w-[140px] flex-col gap-2">
+                <img
+                  src={getImageUrl(image.url)}
+                  alt={image.altText ?? ""}
+                  loading="lazy"
+                  className="h-[100px] w-[140px] rounded-2xl bg-paper-2 object-contain"
+                />
                 <button
                   type="button"
+                  className="btn btn-danger btn-sm"
                   disabled={imageBusy}
-                  onClick={() => handleDeleteImage(image.id)}
+                  onClick={() => setImageToDelete(image.id)}
                 >
-                  O'chirish
+                  {t("common.delete")}
                 </button>
               </li>
             ))}
           </ul>
         )}
 
-        <label>Yangi rasmlar qo'shish</label>
+        <span className="field-label">{t("edit.addImages")}</span>
 
         <ImagePicker
           files={newImages}
@@ -216,22 +228,34 @@ function EditProperty() {
         {newImages.length > 0 && (
           <button
             type="button"
+            className="btn btn-outline btn-sm mt-2 self-start"
             disabled={imageBusy}
             onClick={handleUploadImages}
           >
             {imageBusy
-              ? "Yuklanmoqda..."
-              : `${newImages.length} ta rasmni yuklash`}
+              ? t("edit.uploading")
+              : t("edit.uploadN", { n: newImages.length })}
           </button>
         )}
 
-        {imageMessage && <p>{imageMessage}</p>}
+        {imageMessage && <p className="mt-2 text-sm">{imageMessage}</p>}
 
-        <p style={{ color: "#8a6500" }}>
-          Eslatma: e'lonni tahrirlasangiz, u qayta moderatsiyaga (Kutilmoqda)
-          o'tadi va tasdiqlanmaguncha ommaviy ro'yxatda ko'rinmaydi.
-        </p>
+        <p className="alert mt-4 bg-warn-bg text-warn">{t("edit.note")}</p>
       </PropertyForm>
+
+      {imageToDelete !== null && (
+        <ConfirmDialog
+          title={t("edit.delImg.title")}
+          confirmLabel={t("myp.delete.confirm")}
+          busyLabel={t("myp.delete.busy")}
+          busy={imageBusy}
+          danger
+          onConfirm={() => handleDeleteImage(imageToDelete)}
+          onCancel={() => setImageToDelete(null)}
+        >
+          <p>{t("edit.delImg.text")}</p>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

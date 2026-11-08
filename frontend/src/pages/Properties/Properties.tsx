@@ -1,11 +1,14 @@
-import Loading from "../../components/Loading";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 
 import { getProperties } from "../../services/property";
 import { getCategories } from "../../services/category";
 import Filter from "../../components/Filter";
+import PageHeader from "../../components/PageHeader/PageHeader";
 import PropertyCard from "../../components/PropertyCard/PropertyCard";
+import { PropertyGridSkeleton } from "../../components/Skeleton/Skeleton";
+import { useI18n } from "../../i18n/I18nContext";
 
 import type {
   Property,
@@ -13,10 +16,8 @@ import type {
   Category,
 } from "../../types/property";
 
-import "./Properties.css";
-
-
 function Properties() {
+  const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [properties, setProperties] = useState<Property[]>([]);
@@ -31,6 +32,8 @@ function Properties() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const city = searchParams.get("city") || "";
   const category = searchParams.get("category") || "";
@@ -47,16 +50,34 @@ function Properties() {
         const data = await getCategories();
         setCategories(data);
       } catch {
-        setError("Kategoriyalarni yuklashda xatolik.");
+        setError(t("list.catFail"));
       }
     };
 
     fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Drawer ochiq paytda orqa sahifa aylanmasin; Esc bilan yopiladi
+  useEffect(() => {
+    if (!filtersOpen) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [filtersOpen]);
 
   const priceError =
     minPrice && maxPrice && Number(minPrice) > Number(maxPrice)
-      ? "Minimal narx maksimal narxdan katta bo'lmasligi kerak."
+      ? t("list.priceError")
       : "";
 
   useEffect(() => {
@@ -64,6 +85,8 @@ function Properties() {
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
 
     const fetchProperties = async () => {
       try {
@@ -82,17 +105,36 @@ function Properties() {
           sort: sort as "newest" | "price_asc" | "price_desc",
         });
 
+        // Tez-tez filter o'zgarganda eski javob yangisini bosib ketmasligi uchun
+        if (cancelled) return;
         setProperties(result.data);
         setMeta(result.meta);
       } catch {
-        setError("Uylarni yuklashda xatolik yuz berdi.");
+        if (!cancelled) setError(t("list.loadFail"));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchProperties();
-  }, [page, city, category, type, minPrice, maxPrice, rooms, sort, priceError]);
+
+    return () => {
+      cancelled = true;
+    };
+    // t: til almashganda qayta so'rov yuborilmasin
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    page,
+    city,
+    category,
+    type,
+    minPrice,
+    maxPrice,
+    rooms,
+    sort,
+    priceError,
+    reloadKey,
+  ]);
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams);
@@ -110,65 +152,113 @@ function Properties() {
     setSearchParams(params);
   };
 
+  const activeFilters = [city, category, type, minPrice, maxPrice, rooms].filter(
+    Boolean
+  ).length;
+
+  const filterProps = {
+    values: { city, category, type, minPrice, maxPrice, rooms },
+    categories,
+    onChange: updateFilter,
+    onClear: () => setSearchParams({}),
+    priceError,
+  };
+
   return (
-    <main className="properties-page">
-      <div className="properties-heading">
-        <h1>Ko‘chmas mulklar</h1>
-        <p>O‘zingizga mos uy yoki kvartirani toping.</p>
-      </div>
+    <main className="container-page py-12 pb-20">
+      <PageHeader
+        eyebrow={t("list.eyebrow")}
+        title={t("list.title")}
+        subtitle={t("list.subtitle")}
+      />
 
-      <div className="properties-layout">
-        <Filter
-          values={{ city, category, type, minPrice, maxPrice, rooms }}
-          categories={categories}
-          onChange={updateFilter}
-          onClear={() => setSearchParams({})}
-          priceError={priceError}
-        />
+      <div className="grid items-start gap-9 lg:grid-cols-[300px_minmax(0,1fr)]">
+        {/* Kompyuter: chap ustundagi filter */}
+        <aside className="sticky top-24 hidden rounded-2xl border border-line bg-panel p-6 shadow-soft lg:block">
+          <h2 className="mb-2 text-2xl">{t("list.filters")}</h2>
+          <Filter {...filterProps} />
+        </aside>
 
-        <section className="properties-results">
-          <div className="results-top">
+        <section className="min-w-0">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2>Barcha e’lonlar</h2>
-              <p>{meta.total} ta e’lon topildi</p>
+              <h2 className="text-[28px]">{t("list.all")}</h2>
+              <p className="mt-1 text-sm text-muted">
+                {t("list.found", { n: meta.total })}
+              </p>
             </div>
 
-            <select
-              value={sort}
-              onChange={(e) => updateFilter("sort", e.target.value)}
-            >
-              <option value="newest">Eng yangilari</option>
-              <option value="price_asc">Arzonidan qimmatiga</option>
-              <option value="price_desc">Qimmatidan arzoniga</option>
-            </select>
+            <div className="flex w-full items-center gap-2.5 sm:w-auto">
+              <button
+                type="button"
+                className="btn btn-outline btn-sm lg:hidden"
+                onClick={() => setFiltersOpen(true)}
+                aria-haspopup="dialog"
+              >
+                <SlidersHorizontal size={15} />
+                {t("list.filters")}
+                {activeFilters > 0 ? ` (${activeFilters})` : ""}
+              </button>
+
+              <select
+                className="input !min-h-11 !w-auto min-w-0 flex-1 !rounded-[var(--radius-pill)] !py-2.5 !text-sm sm:min-w-[210px] sm:flex-none"
+                value={sort}
+                onChange={(e) => updateFilter("sort", e.target.value)}
+                aria-label={t("list.sort")}
+              >
+                <option value="newest">{t("list.sort.newest")}</option>
+                <option value="price_asc">{t("list.sort.priceAsc")}</option>
+                <option value="price_desc">{t("list.sort.priceDesc")}</option>
+              </select>
+            </div>
           </div>
 
           {priceError ? (
-            <p className="page-message error-message">{priceError}</p>
+            <div className="empty-state">
+              <h3 className="text-2xl">{t("list.priceError.title")}</h3>
+              <p className="text-muted">{priceError}</p>
+            </div>
           ) : loading ? (
-            <Loading text="Uylar yuklanmoqda..." />
+            <PropertyGridSkeleton count={6} className="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" />
           ) : error ? (
-            <p className="page-message error-message">{error}</p>
+            <div className="empty-state">
+              <h3 className="text-2xl">{t("common.errorTitle")}</h3>
+              <p className="text-muted">{error}</p>
+              <button
+                className="btn btn-dark"
+                onClick={() => setReloadKey((key) => key + 1)}
+              >
+                {t("common.retry")}
+              </button>
+            </div>
           ) : properties.length === 0 ? (
-            <p className="page-message">Hozircha e’lonlar topilmadi.</p>
+            <div className="empty-state">
+              <h3 className="text-2xl">{t("list.empty.title")}</h3>
+              <p className="text-muted">{t("list.empty.text")}</p>
+              <button className="btn btn-dark" onClick={() => setSearchParams({})}>
+                {t("filter.clear")}
+              </button>
+            </div>
           ) : (
-            <div className="properties-grid">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {properties.map((property) => (
-                <PropertyCard
-                  key={property.id}
-                  property={property}
-                />
+                <PropertyCard key={property.id} property={property} />
               ))}
             </div>
           )}
 
-          {!loading && !error && meta.totalPages > 1 && (
-            <div className="pagination">
+          {!loading && !error && !priceError && meta.totalPages > 1 && (
+            <nav
+              className="mt-10 flex items-center justify-center gap-4 text-sm text-muted"
+              aria-label={t("list.pages")}
+            >
               <button
+                className="btn btn-outline btn-sm"
                 disabled={page <= 1}
                 onClick={() => updateFilter("page", String(page - 1))}
               >
-                Oldingi
+                <ChevronLeft size={16} />
+                {t("common.prev")}
               </button>
 
               <span>
@@ -176,15 +266,55 @@ function Properties() {
               </span>
 
               <button
+                className="btn btn-outline btn-sm"
                 disabled={page >= meta.totalPages}
                 onClick={() => updateFilter("page", String(page + 1))}
               >
-                Keyingi
+                {t("common.next")}
+                <ChevronRight size={16} />
               </button>
-            </div>
+            </nav>
           )}
         </section>
       </div>
+
+      {/* Mobil: pastdan chiqadigan filter drawer (URL query bilan sinxron) */}
+      {filtersOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end bg-scrim/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setFiltersOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("list.filters")}
+            className="max-h-[88vh] w-full overflow-y-auto rounded-t-2xl bg-panel p-5 pb-8 shadow-lift"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-2xl">{t("list.filters")}</h2>
+              <button
+                type="button"
+                className="grid size-11 place-items-center rounded-lg border border-line"
+                onClick={() => setFiltersOpen(false)}
+                aria-label={t("common.close")}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <Filter {...filterProps} />
+
+            <button
+              type="button"
+              className="btn btn-dark mt-4 w-full"
+              onClick={() => setFiltersOpen(false)}
+            >
+              {t("filter.show")}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

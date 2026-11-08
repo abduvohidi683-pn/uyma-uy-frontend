@@ -3,7 +3,7 @@ import { getCategories } from "../../services/category";
 import type { CreatePropertyData } from "../../services/property";
 import type { Category } from "../../types/property";
 import FieldError from "../FieldError";
-import "./PropertyForm.css";
+import { useI18n } from "../../i18n/I18nContext";
 
 interface FormState {
   title: string;
@@ -64,6 +64,29 @@ interface Props {
   children?: ReactNode;
 }
 
+/** Label + maydon + xato matni */
+function Field({
+  id,
+  label,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="field-label">
+        {label}
+      </label>
+      {children}
+      <FieldError message={error} />
+    </div>
+  );
+}
+
 function PropertyForm({
   initialValues,
   submitLabel,
@@ -74,6 +97,7 @@ function PropertyForm({
   onSubmit,
   children,
 }: Props) {
+  const { t, catName } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesError, setCategoriesError] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -84,7 +108,8 @@ function PropertyForm({
   useEffect(() => {
     getCategories()
       .then(setCategories)
-      .catch(() => setCategoriesError("Kategoriyalarni yuklab bo'lmadi."));
+      .catch(() => setCategoriesError(t("form.catFail")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (
@@ -113,21 +138,21 @@ function PropertyForm({
 
     const title = form.title.trim();
     if (title.length < 5 || title.length > 150) {
-      next.title = "5 dan 150 tagacha belgi bo'lishi kerak";
+      next.title = t("form.err.title");
     }
     if (form.description.trim().length < 20) {
-      next.description = "Kamida 20 ta belgi bo'lishi kerak";
+      next.description = t("form.err.description");
     }
-    if (!(price > 0)) next.price = "0 dan katta bo'lishi kerak";
-    if (!form.categoryId) next.categoryId = "Kategoriyani tanlang";
-    if (!form.city.trim()) next.city = "Shaharni kiriting";
-    if (!form.address.trim()) next.address = "Manzilni kiriting";
-    if (!(area > 0)) next.area = "0 dan katta bo'lishi kerak";
+    if (!(price > 0)) next.price = t("form.err.price");
+    if (!form.categoryId) next.categoryId = t("form.err.category");
+    if (!form.city.trim()) next.city = t("form.err.city");
+    if (!form.address.trim()) next.address = t("form.err.address");
+    if (!(area > 0)) next.area = t("form.err.area");
     if (!Number.isInteger(rooms) || rooms < 1) {
-      next.rooms = "Kamida 1 ta butun son";
+      next.rooms = t("form.err.rooms");
     }
     if (!Number.isInteger(bathrooms) || bathrooms < 0) {
-      next.bathrooms = "0 yoki undan katta butun son";
+      next.bathrooms = t("form.err.baths");
     }
 
     setErrors(next);
@@ -151,162 +176,159 @@ function PropertyForm({
   const shownError = error || categoriesError;
 
   return (
-    <form className="property-form" onSubmit={handleSubmit} noValidate>
-      <label htmlFor="pf-title">E'lon nomi</label>
-      <input
-        id="pf-title"
-        name="title"
-        placeholder="Masalan: Chilonzorda 3 xonali kvartira"
-        value={form.title}
-        onChange={handleChange}
-        maxLength={150}
-      />
-      <FieldError message={fieldError("title")} />
+    <form
+      className="card flex flex-col p-5 sm:p-9"
+      onSubmit={handleSubmit}
+      noValidate
+    >
+      <Field id="pf-title" label={t("form.title")} error={fieldError("title")}>
+        <input
+          id="pf-title"
+          name="title"
+          className="input"
+          placeholder={t("form.titlePh")}
+          value={form.title}
+          onChange={handleChange}
+          maxLength={150}
+        />
+      </Field>
 
-      <label htmlFor="pf-description">Tavsif</label>
-      <textarea
-        id="pf-description"
-        name="description"
-        placeholder="Uy haqida batafsil ma'lumot (kamida 20 ta belgi)"
-        rows={5}
-        value={form.description}
-        onChange={handleChange}
-      />
-      <FieldError message={fieldError("description")} />
+      <Field id="pf-description" label={t("form.description")} error={fieldError("description")}>
+        <textarea
+          id="pf-description"
+          name="description"
+          className="input resize-y"
+          placeholder={t("form.descPh")}
+          rows={5}
+          value={form.description}
+          onChange={handleChange}
+        />
+      </Field>
 
-      <div className="form-row">
-        <div>
-          <label htmlFor="pf-price">Narxi</label>
+      <div className="grid gap-x-5 sm:grid-cols-2">
+        <Field id="pf-price" label={t("form.price")} error={fieldError("price")}>
           <input
             id="pf-price"
             name="price"
             type="number"
             min="0"
+            className="input"
             value={form.price}
             onChange={handleChange}
           />
-          <FieldError message={fieldError("price")} />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="pf-currency">Valyuta</label>
+        <Field id="pf-currency" label={t("form.currency")} error={fieldError("currency")}>
           <select
             id="pf-currency"
             name="currency"
+            className="input"
             value={form.currency}
             onChange={handleChange}
           >
             <option value="USD">USD</option>
             <option value="UZS">UZS</option>
           </select>
-          <FieldError message={fieldError("currency")} />
-        </div>
-      </div>
+        </Field>
 
-      <div className="form-row">
-        <div>
-          <label htmlFor="pf-type">E'lon turi</label>
+        <Field id="pf-type" label={t("form.type")} error={fieldError("listingType")}>
           <select
             id="pf-type"
             name="listingType"
+            className="input"
             value={form.listingType}
             onChange={handleChange}
           >
-            <option value="SALE">Sotiladi</option>
-            <option value="RENT">Ijaraga</option>
+            <option value="SALE">{t("type.sale")}</option>
+            <option value="RENT">{t("type.rent")}</option>
           </select>
-          <FieldError message={fieldError("listingType")} />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="pf-category">Kategoriya</label>
+        <Field id="pf-category" label={t("form.category")} error={fieldError("categoryId")}>
           <select
             id="pf-category"
             name="categoryId"
+            className="input"
             value={form.categoryId}
             onChange={handleChange}
           >
-            <option value="">Kategoriyani tanlang</option>
+            <option value="">{t("form.categoryPh")}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name}
+                {catName(category)}
               </option>
             ))}
           </select>
-          <FieldError message={fieldError("categoryId")} />
-        </div>
-      </div>
+        </Field>
 
-      <div className="form-row">
-        <div>
-          <label htmlFor="pf-city">Shahar</label>
+        <Field id="pf-city" label={t("form.city")} error={fieldError("city")}>
           <input
             id="pf-city"
             name="city"
+            className="input"
             value={form.city}
             onChange={handleChange}
           />
-          <FieldError message={fieldError("city")} />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="pf-address">Manzil</label>
+        <Field id="pf-address" label={t("form.address")} error={fieldError("address")}>
           <input
             id="pf-address"
             name="address"
+            className="input"
             value={form.address}
             onChange={handleChange}
           />
-          <FieldError message={fieldError("address")} />
-        </div>
+        </Field>
       </div>
 
-      <div className="form-row three">
-        <div>
-          <label htmlFor="pf-area">Maydon (m²)</label>
+      <div className="grid gap-x-5 sm:grid-cols-3">
+        <Field id="pf-area" label={t("form.area")} error={fieldError("area")}>
           <input
             id="pf-area"
             name="area"
             type="number"
             min="0"
+            className="input"
             value={form.area}
             onChange={handleChange}
           />
-          <FieldError message={fieldError("area")} />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="pf-rooms">Xonalar</label>
+        <Field id="pf-rooms" label={t("form.rooms")} error={fieldError("rooms")}>
           <input
             id="pf-rooms"
             name="rooms"
             type="number"
             min="1"
+            className="input"
             value={form.rooms}
             onChange={handleChange}
           />
-          <FieldError message={fieldError("rooms")} />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="pf-bathrooms">Hammomlar</label>
+        <Field id="pf-bathrooms" label={t("form.baths")} error={fieldError("bathrooms")}>
           <input
             id="pf-bathrooms"
             name="bathrooms"
             type="number"
             min="0"
+            className="input"
             value={form.bathrooms}
             onChange={handleChange}
           />
-          <FieldError message={fieldError("bathrooms")} />
-        </div>
+        </Field>
       </div>
 
       {children}
 
-      {shownError && <p className="form-error">{shownError}</p>}
+      {shownError && <p className="alert alert-error mt-4">{shownError}</p>}
 
-      <button type="submit" className="form-submit" disabled={submitting}>
+      <button
+        type="submit"
+        className="btn btn-dark mt-6 w-full py-4 text-[15px]"
+        disabled={submitting}
+      >
         {submitting ? submittingLabel : submitLabel}
       </button>
     </form>

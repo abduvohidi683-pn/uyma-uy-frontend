@@ -1,4 +1,5 @@
 import type { Category } from "../types/property";
+import { useI18n } from "../i18n/I18nContext";
 import DebouncedInput from "./DebouncedInput";
 
 export interface FilterValues {
@@ -18,7 +19,11 @@ interface FilterProps {
   priceError?: string;
 }
 
-/** Uylar sahifasidagi chap filter paneli. Stillari Properties.css da. */
+const fieldClass =
+  "min-h-11 w-full rounded-[var(--radius-pill)] border border-line bg-card px-3.5 py-3 text-sm outline-none transition focus:border-bronze focus:ring-4 focus:ring-bronze/15";
+const labelClass = "mt-4 text-[13px] font-medium tracking-normal";
+
+/** Filter paneli: kompyuterda chap ustun, mobilda pastdan chiqadigan drawer ichida. */
 function Filter({
   values,
   categories,
@@ -26,79 +31,97 @@ function Filter({
   onClear,
   priceError,
 }: FilterProps) {
-  return (
-    <aside className="filter-panel">
-      <h2>Filterlar</h2>
+  const { t, catName } = useI18n();
 
-      <label>Shahar</label>
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className={labelClass} htmlFor="flt-city">
+        {t("filter.city")}
+      </label>
       <DebouncedInput
+        id="flt-city"
+        className={fieldClass}
         value={values.city}
         onCommit={(v) => onChange("city", v)}
-        placeholder="Masalan, Toshkent"
+        placeholder={t("filter.cityPh")}
       />
 
-      <label>Kategoriya</label>
+      <label className={labelClass} htmlFor="flt-category">
+        {t("filter.category")}
+      </label>
       <select
+        id="flt-category"
+        className={fieldClass}
         value={values.category}
         onChange={(e) => onChange("category", e.target.value)}
       >
-        <option value="">Barcha kategoriyalar</option>
+        <option value="">{t("filter.allCategories")}</option>
         {categories.map((item) => (
           <option key={item.id} value={item.slug}>
-            {item.name}
+            {catName(item)}
           </option>
         ))}
       </select>
 
-      <label>E’lon turi</label>
+      <label className={labelClass} htmlFor="flt-type">
+        {t("filter.type")}
+      </label>
       <select
+        id="flt-type"
+        className={fieldClass}
         value={values.type}
         onChange={(e) => onChange("type", e.target.value)}
       >
-        <option value="">Barchasi</option>
-        <option value="SALE">Sotuv</option>
-        <option value="RENT">Ijara</option>
+        <option value="">{t("common.all")}</option>
+        <option value="SALE">{t("type.sale")}</option>
+        <option value="RENT">{t("type.rent")}</option>
       </select>
 
-      <label>Minimal narx</label>
-      <DebouncedInput
-        type="number"
-        min="0"
-        value={values.minPrice}
-        onCommit={(v) => onChange("minPrice", v)}
-        placeholder="Minimal narx"
-      />
+      <span className={labelClass}>{t("filter.price")}</span>
+      <div className="grid grid-cols-2 gap-2.5">
+        <DebouncedInput
+          className={fieldClass}
+          type="number"
+          min="0"
+          aria-label={t("filter.minLabel")}
+          value={values.minPrice}
+          onCommit={(v) => onChange("minPrice", v)}
+          placeholder={t("filter.min")}
+        />
+        <DebouncedInput
+          className={fieldClass}
+          type="number"
+          min="0"
+          aria-label={t("filter.maxLabel")}
+          value={values.maxPrice}
+          onCommit={(v) => onChange("maxPrice", v)}
+          placeholder={t("filter.max")}
+        />
+      </div>
 
-      <label>Maksimal narx</label>
-      <DebouncedInput
-        type="number"
-        min="0"
-        value={values.maxPrice}
-        onCommit={(v) => onChange("maxPrice", v)}
-        placeholder="Maksimal narx"
-      />
+      {priceError && <p className="text-[13px] text-bad">{priceError}</p>}
 
-      {priceError && (
-        <p style={{ color: "#dc2626", fontSize: 13 }}>{priceError}</p>
-      )}
-
-      <label>Xonalar soni</label>
+      <label className={labelClass} htmlFor="flt-rooms">
+        {t("filter.rooms")}
+      </label>
       <select
+        id="flt-rooms"
+        className={fieldClass}
         value={values.rooms}
         onChange={(e) => onChange("rooms", e.target.value)}
       >
-        <option value="">Barchasi</option>
+        <option value="">{t("common.all")}</option>
         {[1, 2, 3, 4, 5].map((n) => (
           <option key={n} value={n}>
-            {n} xona
+            {t("filter.roomsN", { n })}
           </option>
         ))}
       </select>
 
-      <button type="button" className="clear-filter" onClick={onClear}>
-        Filterlarni tozalash
+      <button type="button" className="btn btn-outline mt-5" onClick={onClear}>
+        {t("filter.clear")}
       </button>
-    </aside>
+    </div>
   );
 }
 

@@ -4,10 +4,13 @@ import { createProperty, type CreatePropertyData } from "../services/property";
 import { uploadPropertyImage } from "../services/image";
 import ImagePicker from "../components/ImagePicker/ImagePicker";
 import PropertyForm from "../components/PropertyForm/PropertyForm";
+import PageHeader from "../components/PageHeader/PageHeader";
+import { useI18n } from "../i18n/I18nContext";
 import { parseApiError } from "../utils/apiErrors";
 
 function CreateProperty() {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const [images, setImages] = useState<File[]>([]);
   const [createdId, setCreatedId] = useState<number | null>(null);
@@ -20,7 +23,7 @@ function CreateProperty() {
     setFieldErrors({});
 
     if (images.length === 0) {
-      setError("Kamida 1 ta rasm yuklang.");
+      setError(t("create.needImage"));
       return;
     }
 
@@ -45,9 +48,9 @@ function CreateProperty() {
         } catch (uploadErr) {
           setImages(remaining);
           setError(
-            `E'lon yaratildi, lekin rasm yuklanmadi: ${
-              parseApiError(uploadErr, "noma'lum xato").general
-            }. Rasmlarni tekshirib qayta yuboring yoki "Mening e'lonlarim"dan tahrirlang.`
+            t("create.imgFail", {
+              reason: parseApiError(uploadErr, t("create.unknown")).general,
+            })
           );
           return;
         }
@@ -57,7 +60,7 @@ function CreateProperty() {
 
       navigate("/my-properties");
     } catch (err) {
-      const parsed = parseApiError(err, "E'lon yaratishda xatolik yuz berdi.");
+      const parsed = parseApiError(err, t("create.fail"));
       setFieldErrors(parsed.fields);
       setError(parsed.general);
     } finally {
@@ -66,18 +69,22 @@ function CreateProperty() {
   };
 
   return (
-    <div className="container">
-      <h1>Yangi uy e'loni</h1>
+    <div className="max-w-[860px]">
+      <PageHeader
+        eyebrow={t("create.eyebrow")}
+        title={t("create.title")}
+        subtitle={t("create.subtitle")}
+      />
 
       <PropertyForm
-        submitLabel="E'lonni joylashtirish"
-        submittingLabel="Yuborilmoqda..."
+        submitLabel={t("create.submit")}
+        submittingLabel={t("create.submitting")}
         submitting={loading}
         error={error}
         serverFieldErrors={fieldErrors}
         onSubmit={handleSubmit}
       >
-        <label>Uy rasmlari (kamida 1 ta, jpg/png/webp, 5 MB gacha)</label>
+        <span className="field-label">{t("img.label")}</span>
 
         <ImagePicker files={images} onChange={setImages} disabled={loading} />
       </PropertyForm>

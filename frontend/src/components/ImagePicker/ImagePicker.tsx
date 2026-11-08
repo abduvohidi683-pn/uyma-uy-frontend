@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import "./ImagePicker.css";
+import { useI18n } from "../../i18n/I18nContext";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -12,6 +12,7 @@ interface ImagePickerProps {
 
 /** Rasm tanlash: tur/hajm tekshiruvi va preview bilan. Backend: jpg/png/webp, 5 MB. */
 function ImagePicker({ files, onChange, disabled }: ImagePickerProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
 
@@ -33,9 +34,9 @@ function ImagePicker({ files, onChange, disabled }: ImagePickerProps) {
 
     for (const file of selected) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        problems.push(`${file.name}: faqat jpg, png yoki webp`);
+        problems.push(t("img.badType", { name: file.name }));
       } else if (file.size > MAX_SIZE) {
-        problems.push(`${file.name}: 5 MB dan katta`);
+        problems.push(t("img.tooBig", { name: file.name }));
       } else {
         valid.push(file);
       }
@@ -46,14 +47,14 @@ function ImagePicker({ files, onChange, disabled }: ImagePickerProps) {
   };
 
   return (
-    <div className="image-picker">
+    <div className="my-2">
       <button
         type="button"
-        className="image-picker-add"
+        className="min-h-11 rounded-xl border border-dashed border-bronze px-4 text-sm font-medium transition hover:bg-bronze-soft disabled:opacity-60"
         onClick={() => inputRef.current?.click()}
         disabled={disabled}
       >
-        + Rasm qo'shish
+        {t("img.add")}
       </button>
 
       <input
@@ -65,16 +66,21 @@ function ImagePicker({ files, onChange, disabled }: ImagePickerProps) {
         onChange={handleSelect}
       />
 
-      {error && <p className="image-picker-error">{error}</p>}
+      {error && <p className="mt-2 text-sm text-bad">{error}</p>}
 
       {files.length > 0 && (
-        <ul className="image-picker-list">
+        <ul className="mt-3 flex flex-wrap gap-2.5">
           {files.map((file, index) => (
-            <li key={`${file.name}-${index}`}>
-              <img src={previews[index]} alt={file.name} />
+            <li key={`${file.name}-${index}`} className="relative size-24">
+              <img
+                src={previews[index]}
+                alt={file.name}
+                className="size-full rounded-xl bg-paper-2 object-contain"
+              />
               <button
                 type="button"
-                aria-label={`${file.name} ni olib tashlash`}
+                aria-label={t("img.remove", { name: file.name })}
+                className="absolute -right-2 -top-2 grid size-8 place-items-center rounded-full bg-bad text-base leading-none text-paper"
                 onClick={() => onChange(files.filter((_, i) => i !== index))}
                 disabled={disabled}
               >

@@ -1,5 +1,5 @@
 import api from "./api";
-import type { Inquiry } from "../types/inquiry";
+import type { Inquiry, ReceivedInquiry } from "../types/inquiry";
 
 export interface CreateInquiryData {
   message: string;
@@ -18,7 +18,13 @@ export const createInquiry = async (
   return response.data;
 };
 
-export const getMyInquiries = async (): Promise<Inquiry[]> => {
+export const getReceivedInquiries = async (): Promise<ReceivedInquiry[]> => {
+  const response = await api.get<ReceivedInquiry[]>("/inquiries/received");
+
+  return response.data;
+};
+
+export const getMyInquiries =async (): Promise<Inquiry[]> => {
   const response = await api.get<Inquiry[]>("/inquiries/my");
 
   return response.data;

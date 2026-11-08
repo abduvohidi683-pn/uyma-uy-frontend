@@ -1,29 +1,33 @@
+import { tr } from "../i18n/I18nContext";
+import type { TKey } from "../i18n/translations";
+
 export interface ParsedApiError {
-  /** maydon nomi -> o'zbekcha xabar (class-validator massividan) */
+  /** maydon nomi -> tarjima qilingan xabar (class-validator massividan) */
   fields: Record<string, string>;
   /** maydonga bog'lanmagan umumiy xabar */
   general: string;
 }
 
-const TRANSLATIONS: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
-  [/must be longer than or equal to (\d+) characters/, (m) => `kamida ${m[1]} ta belgi bo'lishi kerak`],
-  [/must be shorter than or equal to (\d+) characters/, (m) => `ko'pi bilan ${m[1]} ta belgi bo'lishi kerak`],
-  [/must be an email/, () => "to'g'ri email kiriting"],
-  [/must be a valid phone number/, () => "telefon raqami noto'g'ri (masalan, +998901234567)"],
-  [/should not be empty/, () => "bo'sh bo'lmasligi kerak"],
-  [/must be a positive number/, () => "0 dan katta bo'lishi kerak"],
-  [/must not be less than (\d+)/, (m) => `${m[1]} dan kam bo'lmasligi kerak`],
-  [/must not be greater than (\d+)/, (m) => `${m[1]} dan oshmasligi kerak`],
-  [/must be an integer number/, () => "butun son bo'lishi kerak"],
-  [/must be a number/, () => "son bo'lishi kerak"],
-  [/must be one of the following values/, () => "noto'g'ri qiymat"],
-  [/must be a string/, () => "matn bo'lishi kerak"],
+// class-validator'ning inglizcha xabarlarini joriy tilga o'giradi
+const PATTERNS: Array<[RegExp, TKey, boolean]> = [
+  [/must be longer than or equal to (\d+) characters/, "val.minLen", true],
+  [/must be shorter than or equal to (\d+) characters/, "val.maxLen", true],
+  [/must be an email/, "val.email", false],
+  [/must be a valid phone number/, "val.phone", false],
+  [/should not be empty/, "val.notEmpty", false],
+  [/must be a positive number/, "val.positive", false],
+  [/must not be less than (\d+)/, "val.min", true],
+  [/must not be greater than (\d+)/, "val.max", true],
+  [/must be an integer number/, "val.int", false],
+  [/must be a number/, "val.number", false],
+  [/must be one of the following values/, "val.oneOf", false],
+  [/must be a string/, "val.string", false],
 ];
 
 const translate = (text: string): string => {
-  for (const [pattern, build] of TRANSLATIONS) {
+  for (const [pattern, key, withNumber] of PATTERNS) {
     const match = text.match(pattern);
-    if (match) return build(match);
+    if (match) return tr(key, withNumber ? { n: match[1] } : undefined);
   }
   return text;
 };

@@ -1,21 +1,24 @@
-import Loading from "../../components/Loading";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
+import { Heart } from "lucide-react";
 
 import { getFavorites } from "../../services/favorite";
 import { useFavorites } from "../../context/FavoritesContext";
+import { useI18n } from "../../i18n/I18nContext";
 
 import type { Favorite } from "../../services/favorite";
 
-import "./Favorites.css";
+import PageHeader from "../../components/PageHeader/PageHeader";
 import PropertyCard from "../../components/PropertyCard/PropertyCard";
+import { PropertyGridSkeleton } from "../../components/Skeleton/Skeleton";
 
 function Favorites() {
   const { remove } = useFavorites();
+  const { t } = useI18n();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const fetchFavorites = async () => {
     try {
@@ -25,7 +28,7 @@ function Favorites() {
       const data = await getFavorites();
       setFavorites(data);
     } catch {
-      setError("Sevimli e'lonlarni yuklab bo'lmadi. Login qilganingizni tekshiring.");
+      setError(t("fav.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -33,57 +36,69 @@ function Favorites() {
 
   useEffect(() => {
     fetchFavorites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRemove = async (propertyId: number) => {
     try {
+      setActionError("");
       await remove(propertyId);
 
       setFavorites((previous) =>
         previous.filter((item) => item.propertyId !== propertyId)
       );
     } catch {
-      setError("E'lonni sevimlilardan olib tashlashda xatolik.");
+      setActionError(t("fav.removeFail"));
     }
   };
 
   return (
-    <main className="favorites-page">
-      <div className="favorites-heading">
-        <h1>Sevimli e'lonlar</h1>
-        <p>Siz saqlab qo‘ygan uylar ro‘yxati.</p>
-      </div>
+    <div>
+      <PageHeader
+        eyebrow={t("fav.eyebrow")}
+        title={t("fav.title")}
+        subtitle={t("fav.subtitle")}
+      />
+
+      {actionError && <p className="alert alert-error mb-5">{actionError}</p>}
 
       {loading ? (
-        <Loading text="Yuklanmoqda..." />
+        <PropertyGridSkeleton count={3} className="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" />
       ) : error ? (
-        <div className="favorites-message">
-          <p>{error}</p>
-          <button onClick={fetchFavorites}>Qayta urinish</button>
+        <div className="empty-state">
+          <h3 className="text-2xl">{t("common.loadFailed")}</h3>
+          <p className="text-muted">{error}</p>
+          <button className="btn btn-dark" onClick={fetchFavorites}>
+            {t("common.retry")}
+          </button>
         </div>
       ) : favorites.length === 0 ? (
-        <div className="favorites-empty">
-          <h2>Hozircha sevimli e'lonlar yo‘q</h2>
-          <p>Yoqtirgan uylaringizni sevimlilarga qo‘shing.</p>
-          <Link to="/properties">Uylarni ko‘rish</Link>
+        <div className="empty-state">
+          <Heart size={34} className="text-bronze-deep" />
+          <h3 className="text-2xl">{t("fav.empty.title")}</h3>
+          <p className="text-muted">{t("fav.empty.text")}</p>
+          <Link to="/properties" className="btn btn-dark">
+            {t("fav.empty.cta")}
+          </Link>
         </div>
       ) : (
-        <div className="favorites-grid">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {favorites.map((item) => (
-            <div className="favorite-item" key={item.id}>
+            <div className="flex flex-col gap-3" key={item.id}>
               <PropertyCard property={item.property} hideFavorite />
 
               <button
-                className="remove-favorite"
+                className="btn btn-outline btn-sm w-full !text-bad hover:!border-red-600"
                 onClick={() => handleRemove(item.propertyId)}
               >
-                ♥ Sevimlilardan olib tashlash
+                <Heart size={15} fill="currentColor" />
+                {t("fav.remove")}
               </button>
             </div>
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

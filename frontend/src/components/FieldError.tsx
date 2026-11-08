@@ -3,11 +3,7 @@ function FieldError({ id, message }: { id?: string; message?: string }) {
   if (!message) return null;
 
   return (
-    <small
-      id={id}
-      role="alert"
-      style={{ display: "block", marginTop: 4, color: "#dc2626", fontSize: 13 }}
-    >
+    <small id={id} role="alert" className="mt-1 block text-[13px] text-bad">
       {message}
     </small>
   );

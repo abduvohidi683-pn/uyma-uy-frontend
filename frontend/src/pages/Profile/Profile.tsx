@@ -1,30 +1,25 @@
 import { useState } from "react";
 import type React from "react";
-import { Link } from "react-router-dom";
-import {
-  Heart,
-  MessageSquare,
-  Building2,
-  Plus,
-  ShieldCheck,
-} from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
+import { useI18n } from "../../i18n/I18nContext";
 import LogoutButton from "../../components/LogoutButton/LogoutButton";
+import FieldError from "../../components/FieldError";
+import PageHeader from "../../components/PageHeader/PageHeader";
 import { updateMe, type UpdateProfileData } from "../../services/user";
-import { getErrorMessage } from "../../types/api";
-
-import "./Profile.css";
+import { parseApiError } from "../../utils/apiErrors";
 
 const PHONE_REGEX = /^(\+998)?\d{9}$/;
 
 function Profile() {
   const { user, isAdmin, updateUser } = useAuth();
+  const { t } = useI18n();
 
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -34,6 +29,7 @@ function Profile() {
     setFullName(user.fullName);
     setPhone(user.phone ?? "");
     setError("");
+    setFieldErrors({});
     setSuccess("");
     setIsEditing(true);
   };
@@ -42,21 +38,27 @@ function Profile() {
     e.preventDefault();
 
     setError("");
+    setFieldErrors({});
     setSuccess("");
 
     const name = fullName.trim();
     const cleanPhone = phone.replace(/[\s-]/g, "");
+    const clientErrors: Record<string, string> = {};
 
     if (name.length < 2 || name.length > 100) {
-      setError("Ism 2 dan 100 belgigacha bo‘lishi kerak.");
-      return;
+      clientErrors.fullName = t("profile.nameErr");
     }
 
     if (cleanPhone && !PHONE_REGEX.test(cleanPhone)) {
-      setError("Telefon formati: +998901234567");
+      clientErrors.phone = t("profile.phoneErr");
+    }
+
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
       return;
     }
 
+    // Notion: PATCH /users/me faqat fullName va phone qabul qiladi
     const payload: UpdateProfileData = {};
 
     if (name !== user.fullName) {
@@ -79,146 +81,139 @@ function Profile() {
 
       updateUser(updated);
 
-      setSuccess("Ma’lumotlar saqlandi.");
+      setSuccess(t("profile.saved"));
       setIsEditing(false);
     } catch (err) {
-      setError(
-        getErrorMessage(err, "Saqlashda xatolik yuz berdi.")
-      );
+      const parsed = parseApiError(err, t("profile.saveFail"));
+      setFieldErrors(parsed.fields);
+      setError(parsed.general);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <main className="profile-page">
-      <section className="profile-card">
-        <div className="profile-avatar">
+    <div className="flex flex-col gap-6">
+      <PageHeader eyebrow={t("nav.profile")} title={user.fullName} />
+
+      <section className="card flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:p-[30px]">
+        <div className="grid size-20 shrink-0 place-items-center rounded-xl bg-charcoal font-serif text-[34px] font-medium text-bronze-light">
           {user.fullName.charAt(0).toUpperCase()}
         </div>
 
-        <div className="profile-info">
-          <h1>{user.fullName}</h1>
+        <div className="min-w-0 flex-1">
+          <p className="mb-2.5 truncate text-muted">{user.email}</p>
 
-          <span className={`profile-role ${isAdmin ? "admin" : ""}`}>
-            {isAdmin ? "Administrator" : "Foydalanuvchi"}
+          <span
+            className={`inline-block rounded-[var(--radius-pill)] px-3.5 py-1 text-xs font-medium tracking-wide ${
+              isAdmin ? "bg-charcoal text-paper" : "bg-bronze-soft text-bronze-deep"
+            }`}
+          >
+            {isAdmin ? t("role.ADMIN") : t("role.USER")}
           </span>
         </div>
 
         <LogoutButton />
       </section>
 
-      <section className="profile-details">
-        <div className="profile-details-header">
-          <h2>Ma’lumotlarim</h2>
+      <section className="card p-6 sm:p-[30px]">
+        <div className="mb-[22px] flex items-center justify-between gap-3">
+          <h2 className="text-[26px]">{t("profile.title")}</h2>
 
           {!isEditing && (
             <button
               type="button"
-              className="profile-edit-btn"
+              className="btn btn-outline btn-sm"
               onClick={startEditing}
             >
-              Tahrirlash
+              {t("common.edit")}
             </button>
           )}
         </div>
 
-        {success && (
-          <p className="profile-success">{success}</p>
-        )}
+        {success && <p className="alert alert-success mb-4">{success}</p>}
 
         {isEditing ? (
-          <form className="profile-form" onSubmit={handleSave}>
-            <label htmlFor="fullName">To‘liq ism</label>
-
+          <form className="flex flex-col" onSubmit={handleSave} noValidate>
+            <label className="field-label !mt-0" htmlFor="fullName">
+              {t("profile.fullName")}
+            </label>
             <input
               id="fullName"
+              className="input"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
             />
+            <FieldError message={fieldErrors.fullName} />
 
-            <label htmlFor="phone">Telefon</label>
+            <label className="field-label" htmlFor="email">
+              {t("profile.email")}
+            </label>
+            <input
+              id="email"
+              className="input cursor-not-allowed bg-canvas text-muted"
+              value={user.email}
+              readOnly
+              disabled
+            />
+            <small className="mt-1 text-xs text-muted">
+              {t("profile.emailLocked")}
+            </small>
 
+            <label className="field-label" htmlFor="phone">
+              {t("profile.phone")}
+            </label>
             <input
               id="phone"
               type="tel"
+              className="input"
               placeholder="+998901234567"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
+            <FieldError message={fieldErrors.phone} />
 
-            {error && (
-              <p className="profile-error">{error}</p>
-            )}
+            {error && <p className="alert alert-error mt-4">{error}</p>}
 
-            <div className="profile-form-actions">
-              <button type="submit" disabled={saving}>
-                {saving ? "Saqlanmoqda..." : "Saqlash"}
+            <div className="mt-5 flex gap-2.5">
+              <button type="submit" className="btn btn-dark btn-sm" disabled={saving}>
+                {saving ? t("common.saving") : t("common.save")}
               </button>
 
               <button
                 type="button"
-                className="secondary"
+                className="btn btn-outline btn-sm"
                 onClick={() => {
                   setIsEditing(false);
                   setError("");
+                  setFieldErrors({});
                 }}
                 disabled={saving}
               >
-                Bekor qilish
+                {t("common.cancel")}
               </button>
             </div>
           </form>
         ) : (
           <dl>
-            <div>
-              <dt>To‘liq ism</dt>
-              <dd>{user.fullName}</dd>
-            </div>
-
-            <div>
-              <dt>Email</dt>
-              <dd>{user.email}</dd>
-            </div>
-
-            <div>
-              <dt>Telefon</dt>
-              <dd>{user.phone || "Kiritilmagan"}</dd>
-            </div>
+            {[
+              [t("profile.fullName"), user.fullName],
+              [t("profile.email"), user.email],
+              [t("profile.phone"), user.phone || t("common.notSet")],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex flex-col gap-1 border-b border-line py-4 last:border-b-0 sm:flex-row sm:justify-between sm:gap-4"
+              >
+                <dt className="text-sm text-muted">{label}</dt>
+                <dd className="break-all font-medium sm:text-right">{value}</dd>
+              </div>
+            ))}
           </dl>
         )}
       </section>
-
-      <section className="profile-links">
-        <Link to="/my-properties">
-          <Building2 size={22} />
-          Mening e’lonlarim
-        </Link>
-
-        <Link to="/favorites">
-          <Heart size={22} />
-          Sevimlilar
-        </Link>
-
-        <Link to="/my-inquiries">
-          <MessageSquare size={22} />
-          Murojaatlarim
-        </Link>
-
-        <Link to="/create-property">
-          <Plus size={22} />
-          E’lon qo‘shish
-        </Link>
-
-        {isAdmin && (
-          <Link to="/admin">
-            <ShieldCheck size={22} />
-            Admin panel
-          </Link>
-        )}
-      </section>
-    </main>
+    </div>
   );
 }
 

@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 
-import Loading from "../../../components/Loading";
-import AdminSidebar from "../../../components/AdminSidebar/AdminSidebar";
+import ConfirmDialog from "../../../components/ConfirmDialog";
+import PageHeader from "../../../components/PageHeader/PageHeader";
+import { RowsSkeleton } from "../../../components/Skeleton/Skeleton";
+import { useI18n } from "../../../i18n/I18nContext";
 import {
   createCategory,
   deleteCategory,
@@ -9,10 +11,7 @@ import {
   updateCategory,
 } from "../../../services/category";
 import type { Category } from "../../../types/property";
-import { getErrorMessage } from "../../../types/api";
-
-import "../AdminUsers/AdminUsers.css";
-import "./AdminCategories.css";
+import { parseApiError } from "../../../utils/apiErrors";
 
 // Backend bilan bir xil qoida: kichik harf, raqam va tire
 const SLUG_REGEX = /^[a-z0-9-]+$/;
@@ -26,6 +25,7 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 function AdminCategories() {
+  const { t } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -48,7 +48,7 @@ function AdminCategories() {
       setLoadError("");
       setCategories(await getCategories());
     } catch (err) {
-      setLoadError(getErrorMessage(err, "Kategoriyalarni yuklab bo'lmadi."));
+      setLoadError(parseApiError(err, t("adm.cat.loadFail")).general);
     } finally {
       setLoading(false);
     }
@@ -56,6 +56,7 @@ function AdminCategories() {
 
   useEffect(() => {
     fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resetForm = () => {
@@ -90,14 +91,12 @@ function AdminCategories() {
     const cleanSlug = slug.trim();
 
     if (!cleanName) {
-      setFormError("Kategoriya nomi bo'sh bo'lmasligi kerak.");
+      setFormError(t("adm.cat.nameEmpty"));
       return;
     }
 
     if (!SLUG_REGEX.test(cleanSlug)) {
-      setFormError(
-        "Slug faqat kichik harf (a-z), raqam va tiredan iborat bo'lsin."
-      );
+      setFormError(t("adm.cat.slugInvalid"));
       return;
     }
 
@@ -106,17 +105,18 @@ function AdminCategories() {
 
       if (editingId === null) {
         await createCategory({ name: cleanName, slug: cleanSlug });
-        setSuccess("Kategoriya qo'shildi.");
+        setSuccess(t("adm.cat.added"));
       } else {
         await updateCategory(editingId, { name: cleanName, slug: cleanSlug });
-        setSuccess("Kategoriya yangilandi.");
+        setSuccess(t("adm.cat.updated"));
       }
 
       resetForm();
       await fetchCategories();
     } catch (err) {
       // 409 (takror nom/slug) va 400 xabarlari serverdan keladi
-      setFormError(getErrorMessage(err, "Saqlashda xatolik yuz berdi."));
+      const parsed = parseApiError(err, t("adm.cat.saveFail"));
+      setFormError(parsed.general || Object.values(parsed.fields).join(", "));
     } finally {
       setSaving(false);
     }
@@ -132,170 +132,169 @@ function AdminCategories() {
       await deleteCategory(deleteTarget.id);
 
       if (editingId === deleteTarget.id) resetForm();
-      setSuccess(`"${deleteTarget.name}" o'chirildi.`);
+      setSuccess(t("adm.cat.deleted", { name: deleteTarget.name }));
       setDeleteTarget(null);
       await fetchCategories();
     } catch (err) {
       // Masalan: kategoriyada e'lonlar bo'lsa backend 400 qaytaradi
-      setDeleteError(getErrorMessage(err, "O'chirishda xatolik yuz berdi."));
+      setDeleteError(parseApiError(err, t("adm.cat.deleteFail")).general);
     } finally {
       setDeleting(false);
     }
   };
 
   return (
-    <div className="admin-container">
-      <AdminSidebar active="categories" />
+    <div>
+      <PageHeader
+        eyebrow={t("adm.eyebrow")}
+        title={t("adm.cat.title")}
+        subtitle={t("adm.cat.subtitle")}
+      />
 
-      <main className="admin-main">
-        <header className="admin-header">
+      <form
+        className="card mb-7 max-w-[780px] p-5 sm:p-7"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        <h2 className="mb-4 text-2xl">
+          {editingId === null ? t("adm.cat.newTitle") : t("adm.cat.editTitle")}
+        </h2>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <h1>Kategoriyalar</h1>
-            <p>E'lon kategoriyalarini boshqarish</p>
-          </div>
-        </header>
-
-        <form className="category-form" onSubmit={handleSubmit} noValidate>
-          <h2>{editingId === null ? "Yangi kategoriya" : "Tahrirlash"}</h2>
-
-          <div className="category-form-row">
-            <div>
-              <label htmlFor="category-name">Nomi</label>
-              <input
-                id="category-name"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="Masalan, Kvartiralar"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="category-slug">Slug</label>
-              <input
-                id="category-slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setSlug(e.target.value);
-                }}
-                placeholder="kvartira"
-              />
-            </div>
+            <label className="field-label !mt-0" htmlFor="category-name">
+              {t("adm.col.name")}
+            </label>
+            <input
+              id="category-name"
+              className="input"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder={t("adm.cat.namePh")}
+            />
           </div>
 
-          {formError && <p className="category-error">{formError}</p>}
-          {success && <p className="category-success">{success}</p>}
+          <div>
+            <label className="field-label !mt-0" htmlFor="category-slug">
+              {t("adm.col.slug")}
+            </label>
+            <input
+              id="category-slug"
+              className="input"
+              value={slug}
+              onChange={(e) => {
+                setSlugTouched(true);
+                setSlug(e.target.value);
+              }}
+              placeholder={t("adm.cat.slugPh")}
+            />
+          </div>
+        </div>
 
-          <div className="category-form-actions">
-            <button type="submit" disabled={saving}>
-              {saving
-                ? "Saqlanmoqda..."
-                : editingId === null
-                  ? "Qo'shish"
-                  : "Saqlash"}
+        {formError && <p className="alert alert-error mt-3.5">{formError}</p>}
+        {success && <p className="alert alert-success mt-3.5">{success}</p>}
+
+        <div className="mt-[18px] flex gap-2.5">
+          <button type="submit" className="btn btn-dark btn-sm" disabled={saving}>
+            {saving
+              ? t("common.saving")
+              : editingId === null
+                ? t("common.add")
+                : t("common.save")}
+          </button>
+
+          {editingId !== null && (
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={resetForm}
+              disabled={saving}
+            >
+              {t("common.cancel")}
             </button>
+          )}
+        </div>
+      </form>
 
-            {editingId !== null && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={resetForm}
-                disabled={saving}
-              >
-                Bekor qilish
-              </button>
-            )}
-          </div>
-        </form>
+      {loading ? (
+        <RowsSkeleton count={4} />
+      ) : loadError ? (
+        <div className="empty-state">
+          <h3 className="text-2xl">{t("common.loadFailed")}</h3>
+          <p className="text-muted">{loadError}</p>
+          <button className="btn btn-dark" onClick={fetchCategories}>
+            {t("common.retry")}
+          </button>
+        </div>
+      ) : categories.length === 0 ? (
+        <div className="empty-state">
+          <h3 className="text-2xl">{t("adm.cat.empty")}</h3>
+          <p className="text-muted">{t("adm.cat.emptyText")}</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-3xl border border-line bg-card">
+          <table className="w-full min-w-[560px] border-collapse">
+            <thead>
+              <tr className="bg-paper-2 text-left text-xs font-medium tracking-normal text-muted">
+                <th className="px-5 py-4">{t("adm.col.id")}</th>
+                <th className="px-5 py-4">{t("adm.col.name")}</th>
+                <th className="px-5 py-4">{t("adm.col.slug")}</th>
+                <th className="px-5 py-4">{t("adm.col.actions")}</th>
+              </tr>
+            </thead>
 
-        {loading ? (
-          <Loading text="Yuklanmoqda..." />
-        ) : loadError ? (
-          <div>
-            <p className="admin-error">{loadError}</p>
-            <button onClick={fetchCategories}>Qayta urinish</button>
-          </div>
-        ) : categories.length === 0 ? (
-          <p>Hozircha kategoriyalar yo'q.</p>
-        ) : (
-          <div className="admin-content">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nomi</th>
-                  <th>Slug</th>
-                  <th>Amallar</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {categories.map((category) => (
-                  <tr key={category.id}>
-                    <td>{category.id}</td>
-                    <td>{category.name}</td>
-                    <td>
-                      <code>{category.slug}</code>
-                    </td>
-                    <td className="category-actions">
-                      <button onClick={() => startEdit(category)}>
-                        Tahrirlash
+            <tbody>
+              {categories.map((category) => (
+                <tr
+                  key={category.id}
+                  className="border-t border-line text-sm transition hover:bg-paper-2"
+                >
+                  <td className="px-5 py-4 text-muted">{category.id}</td>
+                  <td className="px-5 py-4 font-medium">{category.name}</td>
+                  <td className="px-5 py-4">
+                    <code className="rounded-md bg-canvas px-2 py-1 text-xs">
+                      {category.slug}
+                    </code>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex gap-2">
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => startEdit(category)}
+                      >
+                        {t("common.edit")}
                       </button>
                       <button
-                        className="danger"
+                        className="btn btn-danger btn-sm"
                         onClick={() => {
                           setDeleteError("");
                           setDeleteTarget(category);
                         }}
                       >
-                        O'chirish
+                        {t("common.delete")}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {deleteTarget && (
-        <div
-          className="category-modal-backdrop"
-          onClick={() => !deleting && setDeleteTarget(null)}
+        <ConfirmDialog
+          title={t("adm.cat.deleteTitle")}
+          confirmLabel={t("myp.delete.confirm")}
+          busyLabel={t("myp.delete.busy")}
+          busy={deleting}
+          danger
+          error={deleteError}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
         >
-          <div
-            className="category-modal"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3>Kategoriyani o'chirish</h3>
-            <p>
-              <strong>{deleteTarget.name}</strong> kategoriyasini
-              o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi.
-            </p>
-
-            {deleteError && <p className="category-error">{deleteError}</p>}
-
-            <div className="category-form-actions">
-              <button
-                className="danger"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? "O'chirilmoqda..." : "Ha, o'chirish"}
-              </button>
-              <button
-                className="secondary"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleting}
-              >
-                Bekor qilish
-              </button>
-            </div>
-          </div>
-        </div>
+          <p>{t("adm.cat.deleteText", { name: deleteTarget.name })}</p>
+        </ConfirmDialog>
       )}
     </div>
   );

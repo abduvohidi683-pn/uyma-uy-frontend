@@ -17,3 +17,12 @@ export interface Inquiry {
     images: PropertyImage[];
   };
 }
+
+/** Seller'ga kelgan murojaat: yuboruvchi ma'lumoti bilan. */
+export interface ReceivedInquiry extends Inquiry {
+  sender: {
+    id: number;
+    fullName: string;
+    email: string;
+  };
+}

@@ -1,14 +1,20 @@
-import "./Loading.css";
+import { useI18n } from "../i18n/I18nContext";
 
 interface LoadingProps {
   text?: string;
 }
 
-function Loading({ text = "Yuklanmoqda..." }: LoadingProps) {
+function Loading({ text }: LoadingProps) {
+  const { t } = useI18n();
+
   return (
-    <div className="loading" role="status" aria-live="polite">
-      <span className="loading-spinner" />
-      <span className="loading-text">{text}</span>
+    <div
+      className="flex min-h-[40vh] flex-col items-center justify-center gap-3.5 px-4 py-10 text-muted"
+      role="status"
+      aria-live="polite"
+    >
+      <span className="size-9 animate-spin rounded-full border-[3px] border-line border-t-bronze" />
+      <span className="text-sm">{text ?? t("common.loading")}</span>
     </div>
   );
 }

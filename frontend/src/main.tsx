@@ -4,18 +4,20 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import { I18nProvider } from "./i18n/I18nContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import "./index.css";
-import "./styles/global.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <FavoritesProvider>
-          <App />
-        </FavoritesProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <App />
+          </FavoritesProvider>
+        </AuthProvider>
+      </I18nProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

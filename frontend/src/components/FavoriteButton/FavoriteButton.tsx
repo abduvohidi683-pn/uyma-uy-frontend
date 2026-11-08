@@ -4,8 +4,8 @@ import { Heart } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
 import { useFavorites } from "../../context/FavoritesContext";
+import { useI18n } from "../../i18n/I18nContext";
 import { parseApiError } from "../../utils/apiErrors";
-import "./FavoriteButton.css";
 
 interface Props {
   propertyId: number;
@@ -17,6 +17,7 @@ interface Props {
 function FavoriteButton({ propertyId, variant = "icon", onError }: Props) {
   const { isLoggedIn } = useAuth();
   const { isFavorite, toggle } = useFavorites();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const [busy, setBusy] = useState(false);
@@ -38,23 +39,28 @@ function FavoriteButton({ propertyId, variant = "icon", onError }: Props) {
       onError?.("");
       await toggle(propertyId);
     } catch (err) {
-      onError?.(parseApiError(err, "Amal bajarilmadi.").general);
+      onError?.(parseApiError(err, t("detail.fav.fail")).general);
     } finally {
       setBusy(false);
     }
   };
 
-  const label = active ? "Sevimlilardan olib tashlash" : "Sevimlilarga qo'shish";
+  const label = active ? t("detail.fav.remove") : t("detail.fav.add");
 
   if (variant === "text") {
     return (
       <button
         type="button"
-        className="favorite-button"
+        className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-pill)] border border-ink bg-transparent px-5 text-sm transition-colors hover:bg-card disabled:cursor-wait disabled:opacity-60"
         onClick={handleClick}
         disabled={busy}
       >
-        {active ? "♥ Sevimlilardan olib tashlash" : "♡ Sevimlilarga qo'shish"}
+        <Heart
+          size={16}
+          fill={active ? "currentColor" : "none"}
+          className={active ? "text-bad" : ""}
+        />
+        {label}
       </button>
     );
   }
@@ -62,7 +68,9 @@ function FavoriteButton({ propertyId, variant = "icon", onError }: Props) {
   return (
     <button
       type="button"
-      className={`favorite-icon ${active ? "active" : ""}`}
+      className={`absolute right-3 top-3 z-[2] grid size-11 place-items-center rounded-[var(--radius-pill)] bg-paper transition-colors hover:bg-card disabled:cursor-wait disabled:opacity-60 ${
+        active ? "text-bad" : "text-charcoal"
+      }`}
       onClick={handleClick}
       disabled={busy}
       aria-label={label}
