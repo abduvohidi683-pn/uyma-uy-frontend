@@ -1,0 +1,78 @@
+.favorites-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 5%;
+}
+
+.favorites-heading {
+  margin-bottom: 30px;
+}
+
+.favorites-heading h1 {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.favorites-heading p {
+  color: #77766f;
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.favorite-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.remove-favorite {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #faeeee;
+  color: #dc2626;
+  cursor: pointer;
+}
+
+.favorites-message,
+.favorites-empty {
+  padding: 40px 20px;
+  text-align: center;
+  background: white;
+  border-radius: 20px;
+}
+
+.favorites-message button,
+.favorites-empty a {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 30px;
+  background: #20211f;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.favorites-empty p {
+  margin-top: 10px;
+  color: #77766f;
+}
+
+@media (max-width: 950px) {
+  .favorites-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .favorites-grid {
+    grid-template-columns: 1fr;
+  }
+}

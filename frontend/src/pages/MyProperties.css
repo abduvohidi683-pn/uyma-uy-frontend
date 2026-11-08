@@ -1,0 +1,71 @@
+.my-properties-page {
+  padding: 40px 0;
+}
+
+.my-properties-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.my-properties-top h1 {
+  margin: 0;
+}
+
+.my-properties-add {
+  padding: 11px 20px;
+  border-radius: 30px;
+  background: #20211f;
+  color: #fff;
+  font-size: 14px;
+}
+
+.my-properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 26px;
+}
+
+.my-property-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.my-property-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.my-property-actions a,
+.my-property-actions button {
+  flex: 1;
+  text-align: center;
+  padding: 11px 18px;
+  border-radius: 30px;
+  border: 1px solid #deddd6;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #20211f;
+  cursor: pointer;
+}
+
+.my-property-actions a:hover,
+.my-property-actions button:hover {
+  border-color: #b68b5b;
+  color: #b68b5b;
+}
+
+.my-properties-message {
+  padding: 40px 0;
+  text-align: center;
+  color: #55564f;
+}
+
+.my-properties-error {
+  color: #c0392b;
+}
