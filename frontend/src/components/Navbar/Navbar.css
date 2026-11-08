@@ -1,0 +1,286 @@
+.navbar {
+  width: 100%;
+  height: 82px;
+  padding: 0 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f7f7f4;
+  border-bottom: 1px solid #e9e8e2;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Playfair Display", serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  color: #20211f;
+}
+
+.logo svg {
+  color: #b68b5b;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.nav-links a {
+  position: relative;
+  color: #77766f;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.nav-links a:hover {
+  color: #b68b5b;
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #b68b5b;
+  transition: width 0.25s ease;
+}
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  border: 1px solid #deddd6;
+  border-radius: 30px;
+  color: #20211f;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.login-btn:hover {
+  border-color: #b68b5b;
+  color: #b68b5b;
+}
+
+.register-btn {
+  padding: 13px 23px;
+  background: #20211f;
+  border-radius: 30px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.register-btn:hover {
+  background: #b68b5b;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 1100px) {
+  .navbar {
+    height: auto;
+    padding: 20px 5%;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .nav-links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    padding: 17px 5%;
+  }
+
+  .logo {
+    font-size: 25px;
+  }
+
+  .nav-links {
+    justify-content: flex-start;
+    gap: 17px;
+  }
+
+  .nav-links a {
+    font-size: 12px;
+  }
+
+  .nav-actions {
+    gap: 7px;
+  }
+
+  .register-btn {
+    padding: 11px 14px;
+    font-size: 11px;
+  }
+}
+
+/* ---- auth holatiga qarab chiqadigan elementlar ---- */
+.nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-links a.active {
+  color: #b68b5b;
+}
+
+.nav-links a.active::after {
+  width: 100%;
+}
+
+.nav-links a.nav-admin {
+  color: #20211f;
+}
+
+.register-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+
+/* ---- foydalanuvchi chipi ---- */
+.nav-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 14px 5px 5px;
+  border: 1px solid #e9e8e2;
+  border-radius: 30px;
+  background: #fff;
+  color: #20211f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nav-avatar {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #b68b5b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nav-user-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- navbar ichidagi "Chiqish" tugmasi (admin sidebar'ga tegmaydi) ---- */
+.nav-actions .logout-button {
+  padding: 12px 18px;
+  border: 1px solid #deddd6;
+  border-radius: 30px;
+  background: transparent;
+  color: #20211f;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.nav-actions .logout-button:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ---- admin havolasi ---- */
+.nav-links a.nav-admin {
+  padding: 8px 14px;
+  border-radius: 30px;
+  background: #20211f;
+  color: #fff;
+}
+
+.nav-links a.nav-admin::after {
+  display: none;
+}
+
+.nav-links a.nav-admin:hover {
+  background: #b68b5b;
+  color: #fff;
+}
+
+/* ---- kichik ekranlar ---- */
+@media (max-width: 1100px) {
+  .nav-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-user-name {
+    display: none;
+  }
+
+  .nav-user {
+    padding: 4px;
+  }
+
+  .nav-actions .logout-button {
+    padding: 10px 13px;
+    font-size: 12px;
+  }
+
+  .nav-links {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-links a {
+    flex-shrink: 0;
+  }
+}
+
+.nav-user {
+  transition: 0.25s ease;
+}
+
+.nav-user:hover {
+  border-color: #b68b5b;
+}
