@@ -1,0 +1,80 @@
+.property-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.property-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #20211f;
+  margin-top: 8px;
+}
+
+.property-form input,
+.property-form select,
+.property-form textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid #deddd6;
+  border-radius: 14px;
+  background: #f7f7f4;
+  outline: none;
+  transition: 0.25s ease;
+}
+
+.property-form input:focus,
+.property-form select:focus,
+.property-form textarea:focus {
+  border-color: #b68b5b;
+  background: #fff;
+}
+
+.property-form textarea {
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-row.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.form-error {
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.form-submit {
+  margin-top: 14px;
+  padding: 15px;
+  border: none;
+  border-radius: 30px;
+  background: #20211f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.form-submit:hover:not(:disabled) {
+  background: #b68b5b;
+  transform: translateY(-2px);
+}
+
+.form-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .form-row,
+  .form-row.three {
+    grid-template-columns: 1fr;
+  }
+}
